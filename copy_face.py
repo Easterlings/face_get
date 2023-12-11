@@ -17,25 +17,25 @@ from segment_anything import sam_model_registry, SamPredictor
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # GroundingDINO config and checkpoint
-GROUNDING_DINO_CONFIG_PATH = "GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py"
-GROUNDING_DINO_CHECKPOINT_PATH = "E:\\weights\\groundingdino_swint_ogc.pth"
-
+GROUNDING_DINO_CONFIG_PATH = "/ssd/cjy/saiwei-wardrobe/models/grounding-dino/GroundingDINO_SwinT_OGC.py"
+GROUNDING_DINO_CHECKPOINT_PATH = "/ssd/cjy/saiwei-wardrobe/models/grounding-dino/groundingdino_swint_ogc.pth"
+print(DEVICE)
 # Segment-Anything checkpoint
 SAM_ENCODER_VERSION = "vit_h"
-SAM_CHECKPOINT_PATH = "E:\\weights\\sam_vit_h_4b8939.pth"
+SAM_CHECKPOINT_PATH = "/ssd/cjy/saiwei-wardrobe/models/sam/sam_vit_h_4b8939.pth"
 
 # Building GroundingDINO inference model
 grounding_dino_model = Model(model_config_path=GROUNDING_DINO_CONFIG_PATH,
                              model_checkpoint_path=GROUNDING_DINO_CHECKPOINT_PATH, device=DEVICE)
 
-# Building SAM Model and SAM Predictor
-sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH)
-sam.to(device=DEVICE)
-sam_predictor = SamPredictor(sam)
+# # Building SAM Model and SAM Predictor
+# sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH)
+# sam.to(device=DEVICE)
+# sam_predictor = SamPredictor(sam)
 
 # Predict classes and hyper-param for GroundingDINO
 # SOURCE_IMAGE_PATH = "./assets/my21.jpg"
-SOURCE_IMAGE_PATH = "F:\图像处理\人物训练用图\正常hanna\原图"
+SOURCE_IMAGE_PATH = "./imgs/img"
 # CLASSES = ["The running dog"]
 BOX_THRESHOLD = 0.50
 CLASSES = ["Face"]
@@ -59,10 +59,10 @@ def face_only(sourceDir, imgDir, imgFile):
     # data1 = isExist(conn, imgDir, imgFile)
     # if data1.size > 0:
     #     return
-
+    name="10_Hanna-4"
     filename = imgFile[0:imgFile.rfind('.')]
-    dirPath = os.path.join("faces/", imgDir)
-    boxDirPath = os.path.join("faces_box/", imgDir)
+    # dirPath = os.path.join("imgs/faces/", imgDir)
+    boxDirPath = os.path.join(f"/data/lkw/train_resources/{name}", imgDir)
     # if not os.path.exists(dirPath):
     #     os.makedirs(dirPath)
     #     os.makedirs(boxDirPath)
@@ -85,28 +85,42 @@ def face_only(sourceDir, imgDir, imgFile):
     print(f"After NMS: {len(detections.xyxy)} boxes")
     index = indexOfMaxConfidence(detections.confidence)
     if index < 0:
-        insert(conn, (imgDir, imgFile, 0, "False"))
+        # insert(conn, (imgDir, imgFile, 0, "False"))
         return
-    detections.mask = segment(
-        sam_predictor=sam_predictor,
-        image=cv2.cvtColor(image, cv2.COLOR_BGR2RGB),
-        xyxy=detections.xyxy
-    )
-    segment_image = copy.copy(image)
-    masked_image = mask_image(segment_image, detections.mask[index])
+    # detections.mask = segment(
+    #     sam_predictor=sam_predictor,
+    #     image=cv2.cvtColor(image, cv2.COLOR_BGR2RGB),
+    #     xyxy=detections.xyxy
+    # )
+    # segment_image = copy.copy(image)
+    # masked_image = mask_image(segment_image, detections.mask[index])
 
-    if not os.path.exists(dirPath):
-        os.makedirs(dirPath)
+    if not os.path.exists(boxDirPath):
+        # os.makedirs(dirPath)
         os.makedirs(boxDirPath)
-    filepath = os.path.join(dirPath, filename + '.png')
+    # filepath = os.path.join(dirPath, filename + '.png')
     boxFilepath = os.path.join(boxDirPath, imgFile)
-    save_masked_image(masked_image, filepath)
+    # save_masked_image(masked_image, filepath)
     cropBox = detections.xyxy[index]
     print(cropBox)
-    cropImage = image[int(cropBox[1]):int(cropBox[3]), int(cropBox[0]): int(cropBox[2])]
+    cropBox = square(cropBox)
+    print(cropBox)
+    cropImage = image[int(cropBox[1]):int(cropBox[3]), int(cropBox[0]): int(cropBox[2])]#y1 y2 x1 x2
     cv2.imwrite(boxFilepath, cropImage)
-    insert(conn, (imgDir, imgFile, detections.confidence[index], "True"))
+    # insert(conn, (imgDir, imgFile, detections.confidence[index], "True"))
 
+def square(cropBox):
+    xlength= int(cropBox[2])-int(cropBox[0])
+    ylength= int(cropBox[3])-int(cropBox[1])
+    if(ylength>xlength):
+        n = (ylength-xlength)/2
+        cropBox[2]+=n
+        cropBox[0]-=n
+    elif(ylength<xlength):
+        n = (xlength-ylength)/2
+        cropBox[3]+=n
+        cropBox[1]-=n
+    return cropBox
 
 def segment_image(image, segmentation_mask):
     image_array = np.array(image)
@@ -225,6 +239,7 @@ for dir in os.listdir(SOURCE_IMAGE_PATH):
     if os.path.isfile(sourceDir):
         continue
     for filename in os.listdir(sourceDir):
+        print(filename)
         face_only(sourceDir, dir, filename)
 # export(conn, "images.xlsx")
 # closeDB(conn)
