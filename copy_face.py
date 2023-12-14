@@ -25,7 +25,7 @@ BOX_THRESHOLD = 0.20
 CLASSES = ["head"]
 TEXT_THRESHOLD = 0.25
 NMS_THRESHOLD = 0.3
-
+TRAIN_RESOURCES_PATH = f"/data/lkw/train_resources"
 
 def indexOfMaxConfidence(confidences):
     maxC = -1
@@ -41,7 +41,7 @@ def indexOfMaxConfidence(confidences):
 
 def face_only(sourceDir, imgDir, imgFile):
     DirPath = os.path.join("./imgs/faces", imgDir)
-    TRDirPath = os.path.join(f"/data/lkw/train_resources", imgDir)
+    TRDirPath = os.path.join(TRAIN_RESOURCES_PATH, imgDir)
     image = cv2.imread(os.path.join(sourceDir, imgFile))
     detections = grounding_dino_model.predict_with_classes(
         image=image,
@@ -73,11 +73,13 @@ def face_only(sourceDir, imgDir, imgFile):
     cropBox = detections.xyxy[index]
 
     cropBox = square(cropBox)#调整为方形
-
+    cropBox = addN(cropBox)
+    # print("cropBox:",cropBox)
+    cropBox = fitin(cropBox,image)
     cropImage = image[int(cropBox[1]):int(cropBox[3]), int(cropBox[0]): int(cropBox[2])]#y1 y2 x1 x2
     resizeImage = cv2.resize(cropImage, (1024, 1024))
     cv2.imwrite(localFilepath, resizeImage)
-    cv2.imwrite(boxFilepath, resizeImage)
+    # cv2.imwrite(boxFilepath, resizeImage)
 
 def square(cropBox):
     xlength= int(cropBox[2])-int(cropBox[0])
@@ -90,9 +92,32 @@ def square(cropBox):
         n = (xlength-ylength)/2
         cropBox[3]+=n
         cropBox[1]-=n
-    cropBox = [0 if num < 0 else num for num in cropBox]
     return cropBox
 
+def addN(cropBox,n = 100):
+    cropBox[0]-=n
+    cropBox[1]-=n
+    cropBox[2]+=n
+    cropBox[3]+=n
+    return cropBox
+
+#cropBox需要保持在画框内,暂不考虑方框边长大于画面的情况
+def fitin(cropBox,image):
+    height, width, _ = image.shape
+    if cropBox[0]<0:
+        cropBox[2]-=cropBox[0]
+        cropBox[0]=0
+    if cropBox[1]<0:
+        cropBox[3]-=cropBox[1]
+        cropBox[1]=0
+    if cropBox[2]>width:
+        cropBox[0]=cropBox[0]-cropBox[2]+width
+        cropBox[2]=width
+    if cropBox[3]>height:
+        cropBox[1]=cropBox[1]-cropBox[3]+height
+        cropBox[3]=height
+
+    return cropBox
 
 for dir in os.listdir(SOURCE_IMAGE_PATH):
     sourceDir = os.path.join(SOURCE_IMAGE_PATH, dir)
