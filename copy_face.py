@@ -9,6 +9,7 @@ import torch
 import torchvision
 
 from local_groundingdino.util.inference import Model
+from rembg_api_group import send_images_to_api
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -126,3 +127,11 @@ for dir in os.listdir(SOURCE_IMAGE_PATH):
     for filename in os.listdir(sourceDir):
         print(filename)
         face_only(sourceDir, dir, filename)
+
+    image_folder = os.path.join("./imgs/faces", dir)
+    output_folder = os.path.join("./imgs/faces", f"{dir}_nobg")
+    if not os.path.exists(image_folder):
+        os.makedirs(image_folder)
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    send_images_to_api(image_folder, output_folder)
