@@ -10,23 +10,15 @@ import torchvision
 
 from local_groundingdino.util.inference import Model
 from rembg_api_group import send_images_to_api
-
+import random
+from config import GROUNDING_DINO_CONFIG_PATH,GROUNDING_DINO_CHECKPOINT_PATH,SOURCE_IMAGE_PATH,RESULT_IMAGE_PATH,TRAIN_RESOURCES_PATH
+from config import BOX_THRESHOLD,CLASSES,TEXT_THRESHOLD,NMS_THRESHOLD
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-# GroundingDINO config and checkpoint
-GROUNDING_DINO_CONFIG_PATH = "/data/web/saiwei-wardrobe-image-process//models/grounding-dino/GroundingDINO_SwinT_OGC.py"
-GROUNDING_DINO_CHECKPOINT_PATH = "/data/web/saiwei-wardrobe-image-process/models/grounding-dino/groundingdino_swint_ogc.pth"
 
 # Building GroundingDINO inference model
 grounding_dino_model = Model(model_config_path=GROUNDING_DINO_CONFIG_PATH,
                              model_checkpoint_path=GROUNDING_DINO_CHECKPOINT_PATH, device=DEVICE)
 
-SOURCE_IMAGE_PATH = "./imgs/img"
-BOX_THRESHOLD = 0.20
-CLASSES = ["head"]
-TEXT_THRESHOLD = 0.25
-NMS_THRESHOLD = 0.3
-TRAIN_RESOURCES_PATH = f"/data/lkw/train_resources"
 
 def indexOfMaxConfidence(confidences):
     maxC = -1
@@ -74,7 +66,8 @@ def face_only(sourceDir, imgDir, imgFile):
     cropBox = detections.xyxy[index]
 
     cropBox = square(cropBox)#调整为方形
-    cropBox = addN(cropBox)
+    cropBox = addN(cropBox,200)
+    # cropBox = addN(cropBox,random.randint(0, 4)*100)
     # print("cropBox:",cropBox)
     cropBox = fitin(cropBox,image)
     cropImage = image[int(cropBox[1]):int(cropBox[3]), int(cropBox[0]): int(cropBox[2])]#y1 y2 x1 x2
@@ -128,8 +121,8 @@ for dir in os.listdir(SOURCE_IMAGE_PATH):
         print(filename)
         face_only(sourceDir, dir, filename)
 
-    image_folder = os.path.join("./imgs/faces", dir)
-    output_folder = os.path.join("./imgs/faces", f"{dir}_nobg")
+    image_folder = os.path.join(RESULT_IMAGE_PATH, dir)
+    output_folder = os.path.join(RESULT_IMAGE_PATH, f"{dir}_nobg")
     if not os.path.exists(image_folder):
         os.makedirs(image_folder)
     if not os.path.exists(output_folder):
