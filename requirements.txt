@@ -1,0 +1,7 @@
+rembg==2.0.52
+requests==2.28.2
+torch==2.0.1
+torchdiffeq==0.2.3
+torchmetrics==1.0.1
+torchsde==0.2.5
+torchvision==0.15.2

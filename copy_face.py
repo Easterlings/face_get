@@ -9,7 +9,7 @@ import torch
 import torchvision
 
 from local_groundingdino.util.inference import Model
-from rembg_api_group import send_images_to_api
+from rembg_group import rem_bg
 import random
 from config import GROUNDING_DINO_CONFIG_PATH,GROUNDING_DINO_CHECKPOINT_PATH,SOURCE_IMAGE_PATH,RESULT_IMAGE_PATH,TRAIN_RESOURCES_PATH
 from config import BOX_THRESHOLD,CLASSES,TEXT_THRESHOLD,NMS_THRESHOLD
@@ -32,7 +32,7 @@ def indexOfMaxConfidence(confidences):
     return maxI
 
 
-def face_only(sourceDir, imgDir, imgFile):
+def face_only(sourceDir, imgDir, imgFile, edgeWidth, imagesize):
     DirPath = os.path.join("./imgs/faces", imgDir)
     TRDirPath = os.path.join(TRAIN_RESOURCES_PATH, imgDir)
     image = cv2.imread(os.path.join(sourceDir, imgFile))
@@ -66,14 +66,14 @@ def face_only(sourceDir, imgDir, imgFile):
     cropBox = detections.xyxy[index]
 
     cropBox = square(cropBox)#调整为方形
-    cropBox = addN(cropBox,200)
+    cropBox = addN(cropBox, edgeWidth)
     # cropBox = addN(cropBox,random.randint(0, 4)*100)
     # print("cropBox:",cropBox)
     cropBox = fitin(cropBox,image)
     cropImage = image[int(cropBox[1]):int(cropBox[3]), int(cropBox[0]): int(cropBox[2])]#y1 y2 x1 x2
-    resizeImage = cv2.resize(cropImage, (1024, 1024))
+    resizeImage = cv2.resize(cropImage, imagesize)
     cv2.imwrite(localFilepath, resizeImage)
-    # cv2.imwrite(boxFilepath, resizeImage)
+    cv2.imwrite(boxFilepath, resizeImage)
 
 def square(cropBox):
     xlength= int(cropBox[2])-int(cropBox[0])
@@ -113,18 +113,22 @@ def fitin(cropBox,image):
 
     return cropBox
 
-for dir in os.listdir(SOURCE_IMAGE_PATH):
-    sourceDir = os.path.join(SOURCE_IMAGE_PATH, dir)
-    if os.path.isfile(sourceDir):
-        continue
-    for filename in os.listdir(sourceDir):
-        print(filename)
-        face_only(sourceDir, dir, filename)
+if __name__=="__main__":
 
-    image_folder = os.path.join(RESULT_IMAGE_PATH, dir)
-    output_folder = os.path.join(RESULT_IMAGE_PATH, f"{dir}_nobg")
-    if not os.path.exists(image_folder):
-        os.makedirs(image_folder)
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-    send_images_to_api(image_folder, output_folder)
+    edgeWidth = 0
+    imagesize = (128, 128)
+    for dir in os.listdir(SOURCE_IMAGE_PATH):
+        sourceDir = os.path.join(SOURCE_IMAGE_PATH, dir)
+        if os.path.isfile(sourceDir):
+            continue
+        for filename in os.listdir(sourceDir):
+            print(filename)
+            face_only(sourceDir, dir, filename, edgeWidth, imagesize)
+
+    # image_folder = os.path.join(RESULT_IMAGE_PATH, dir)
+    # output_folder = os.path.join(RESULT_IMAGE_PATH, f"{dir}_nobg")
+    # if not os.path.exists(image_folder):
+    #     os.makedirs(image_folder)
+    # if not os.path.exists(output_folder):
+    #     os.makedirs(output_folder)
+    # rem_bg(image_folder, output_folder)
