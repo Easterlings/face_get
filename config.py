@@ -21,6 +21,6 @@ TRAIN_RESOURCES_PATH = os.environ.get('TRAIN_RESOURCES_PATH')
 
 # GroundingDINO class and threshold parameter config
 CLASSES = ["head"] 
-BOX_THRESHOLD = 0.20
-TEXT_THRESHOLD = 0.25
-NMS_THRESHOLD = 0.3
+BOX_THRESHOLD = 0.10
+TEXT_THRESHOLD = 0.35
+NMS_THRESHOLD = 0.5

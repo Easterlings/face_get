@@ -33,7 +33,7 @@ def indexOfMaxConfidence(confidences):
 
 
 def face_only(sourceDir, imgDir, imgFile, edgeWidth, imagesize):
-    DirPath = os.path.join("./imgs/faces", imgDir)
+    DirPath = os.path.join(RESULT_IMAGE_PATH, imgDir)
     TRDirPath = os.path.join(TRAIN_RESOURCES_PATH, imgDir)
     image = cv2.imread(os.path.join(sourceDir, imgFile))
     detections = grounding_dino_model.predict_with_classes(
